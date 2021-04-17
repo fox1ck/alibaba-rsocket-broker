@@ -9,7 +9,7 @@
     <groupId>com.alibaba.rsocket.internal</groupId>
     <artifactId>alibaba-rsocket-broker-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.1.0-1</version>
 
     <modules>
         <module>alibaba-rsocket-core</module>
@@ -193,6 +193,13 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
@@ -340,5 +347,12 @@
             </build>
         </profile>
     </profiles>
+
+    <distributionManagement>
+        <repository>
+            <id>jfrog-central</id>
+            <url>https://igrudsky.jfrog.io/artifactory/vistual-one</url>
+        </repository>
+    </distributionManagement>
 
 </project>
