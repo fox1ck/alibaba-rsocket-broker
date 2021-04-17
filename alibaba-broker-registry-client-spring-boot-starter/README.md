@@ -8,7 +8,7 @@ RSocket Broker Registry Client
 * 在pom.xml中添加以下依赖
 ```
 <dependency>
-    <groupId>com.alibaba.rsocket</groupId>
+    <groupId>com.alibaba.rsocket.internal</groupId>
     <artifactId>alibaba-broker-registry-client-spring-boot-starter</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>

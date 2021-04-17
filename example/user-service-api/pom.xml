@@ -43,7 +43,7 @@
             <version>${rxjava3.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.rsocket</groupId>
+            <groupId>com.alibaba.rsocket.internal</groupId>
             <artifactId>alibaba-rsocket-service-common</artifactId>
             <version>${alibaba-rsocket.version}</version>
         </dependency>

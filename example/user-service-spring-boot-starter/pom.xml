@@ -20,7 +20,7 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.rsocket</groupId>
+            <groupId>com.alibaba.rsocket.internal</groupId>
             <artifactId>alibaba-rsocket-spring-boot-starter</artifactId>
             <version>${alibaba-rsocket.version}</version>
         </dependency>
