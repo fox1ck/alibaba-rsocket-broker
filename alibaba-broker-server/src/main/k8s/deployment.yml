@@ -6,7 +6,7 @@ metadata:
   labels:
     app: rsocket-broker
 spec:
-  replicas: 3
+  replicas: 2
   template:
     metadata:
       name: rsocket-broker
@@ -15,12 +15,33 @@ spec:
     spec:
       containers:
         - name: rsocket-broker
-          image: linuxchina/alibaba-rsocket-broker-k8s:latest
+          image: linuxchina/alibaba-rsocket-broker:1.1.0-SNAPSHOT-k8s
           ports:
             - containerPort: 9997
             - containerPort: 9998
             - containerPort: 9999
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: "SPRING_PROFILES_ACTIVE"
+              value: "kubernetes"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 9997
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 9997
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [ "sh", "-c", "sleep 30" ]
       restartPolicy: Always
   selector:
     matchLabels:
@@ -30,9 +51,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: rsocket-broker
+  namespace: rsocket
 spec:
   ports:
-    - port: 9999
+    - name: http
+      port: 9998
+      targetPort: 9998
+      protocol: TCP
+    - name: rsocket
+      port: 9999
       targetPort: 9999
       protocol: TCP
   selector:

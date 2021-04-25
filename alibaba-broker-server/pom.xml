@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.alibaba.rsocket.internal</groupId>
         <artifactId>alibaba-rsocket-broker-parent</artifactId>
-        <version>1.1.0-1</version>
+        <version>1.1.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>alibaba-broker-server</artifactId>
@@ -13,7 +13,7 @@
     <description>Alibaba RSocket Broker with Web Console</description>
 
     <properties>
-        <vaadin.version>19.0.3</vaadin.version>
+        <vaadin.version>19.0.5</vaadin.version>
         <flexmark-all.version>0.62.2</flexmark-all.version>
         <undertow.version>2.2.7.Final</undertow.version>
         <vaadin.productionMode>true</vaadin.productionMode>
@@ -106,6 +106,10 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -136,7 +140,10 @@
                 <configuration>
                     <mainClass>${mainClass}</mainClass>
                     <jvmArguments>-Dvaadin.productionMode</jvmArguments>
-                    <imageName>linuxchina/alibaba-rsocket-broker:${project.version}-buildpack</imageName>
+                    <image>
+                        <name>linuxchina/alibaba-rsocket-broker:${project.version}</name>
+                        <builder>paketobuildpacks/builder:full</builder>
+                    </image>
                 </configuration>
             </plugin>
             <plugin>
@@ -144,7 +151,7 @@
                 <artifactId>jib-maven-plugin</artifactId>
                 <configuration>
                     <from>
-                        <image>openjdk:8-jdk-slim</image>
+                        <image>adoptopenjdk:8-jdk-hotspot</image>
                     </from>
                     <to>
                         <image>linuxchina/alibaba-rsocket-broker:${project.version}</image>
@@ -229,10 +236,10 @@
                         <artifactId>jib-maven-plugin</artifactId>
                         <configuration>
                             <from>
-                                <image>openjdk:8-jdk-slim</image>
+                                <image>adoptopenjdk:8-jdk-hotspot</image>
                             </from>
                             <to>
-                                <image>linuxchina/alibaba-rsocket-broker-k8s:${project.version}</image>
+                                <image>linuxchina/alibaba-rsocket-broker:${project.version}-k8s</image>
                             </to>
                             <container>
                                 <mainClass>${mainClass}</mainClass>
@@ -243,7 +250,7 @@
                                         /app/libs/alibaba-rsocket-core-${project.version}.jar:/app/resources:/app/classes:/app/libs/*
                                     </JAVA_CLASSPATH>
                                     <JAVA_MAIN_CLASS>${mainClass}</JAVA_MAIN_CLASS>
-                                    <SPRING_PROFILES_ACTIVE>k8s</SPRING_PROFILES_ACTIVE>
+                                    <SPRING_PROFILES_ACTIVE>kubernetes</SPRING_PROFILES_ACTIVE>
                                 </environment>
                                 <ports>
                                     <port>9997</port>
@@ -251,6 +258,18 @@
                                     <port>9999</port>
                                 </ports>
                             </container>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>${mainClass}</mainClass>
+                            <jvmArguments>-Dvaadin.productionMode</jvmArguments>
+                            <image>
+                                <name>linuxchina/alibaba-rsocket-broker:${project.version}-k8s</name>
+                                <builder>paketobuildpacks/builder:full</builder>
+                            </image>
                         </configuration>
                     </plugin>
                 </plugins>

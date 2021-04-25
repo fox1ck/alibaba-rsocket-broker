@@ -2,8 +2,11 @@ package com.alibaba.spring.boot.rsocket.broker.cluster;
 
 import com.alibaba.rsocket.ServiceLocator;
 import com.alibaba.rsocket.cloudevents.CloudEventImpl;
+import com.alibaba.rsocket.observability.RsocketErrorCode;
 import com.alibaba.rsocket.transport.NetworkUtil;
 import io.scalecube.cluster.ClusterMessageHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
@@ -25,32 +28,35 @@ import java.util.stream.Collectors;
  * @author leijuan
  */
 public class RSocketBrokerManagerDiscoveryImpl implements RSocketBrokerManager, ClusterMessageHandler, DisposableBean {
+    private static Logger log = LoggerFactory.getLogger(RSocketBrokerManagerDiscoveryImpl.class);
     private ReactiveDiscoveryClient discoveryClient;
     private Map<String, RSocketBroker> currentBrokers = new HashMap<>();
     private final String SERVICE_NAME = "rsocket-broker";
     private Sinks.Many<Collection<RSocketBroker>> brokersEmitterProcessor = Sinks.many().multicast().onBackpressureBuffer();
     private Disposable brokersFresher;
+    private static final int REFRESH_INTERVAL_SECONDS = 5;
 
     public RSocketBrokerManagerDiscoveryImpl(ReactiveDiscoveryClient discoveryClient) {
         this.discoveryClient = discoveryClient;
-        this.brokersFresher = Flux.interval(Duration.ofSeconds(10)).flatMap(aLong -> {
-            return this.discoveryClient.getInstances(SERVICE_NAME);
-        }).collectList().subscribe(serviceInstances -> {
-            boolean changed = serviceInstances.size() != currentBrokers.size();
-            for (ServiceInstance serviceInstance : serviceInstances) {
-                if (!currentBrokers.containsKey(serviceInstance.getHost())) {
-                    changed = true;
-                }
-            }
-            if (changed) {
-                currentBrokers = serviceInstances.stream().map(serviceInstance -> {
-                    RSocketBroker broker = new RSocketBroker();
-                    broker.setIp(serviceInstance.getHost());
-                    return broker;
-                }).collect(Collectors.toMap(RSocketBroker::getIp, Function.identity()));
-                brokersEmitterProcessor.tryEmitNext(currentBrokers.values());
-            }
-        });
+        this.brokersFresher = Flux.interval(Duration.ofSeconds(REFRESH_INTERVAL_SECONDS))
+                .flatMap(aLong -> this.discoveryClient.getInstances(SERVICE_NAME).collectList())
+                .subscribe(serviceInstances -> {
+                    boolean changed = serviceInstances.size() != currentBrokers.size();
+                    for (ServiceInstance serviceInstance : serviceInstances) {
+                        if (!currentBrokers.containsKey(serviceInstance.getHost())) {
+                            changed = true;
+                        }
+                    }
+                    if (changed) {
+                        currentBrokers = serviceInstances.stream().map(serviceInstance -> {
+                            RSocketBroker broker = new RSocketBroker();
+                            broker.setIp(serviceInstance.getHost());
+                            return broker;
+                        }).collect(Collectors.toMap(RSocketBroker::getIp, Function.identity()));
+                        log.info(RsocketErrorCode.message("RST-300206", String.join(",", currentBrokers.keySet())));
+                        brokersEmitterProcessor.tryEmitNext(currentBrokers.values());
+                    }
+                });
     }
 
     @Override
@@ -80,6 +86,11 @@ public class RSocketBrokerManagerDiscoveryImpl implements RSocketBrokerManager, 
     @Override
     public Flux<ServiceLocator> findServices(String ip) {
         return Flux.empty();
+    }
+
+    @Override
+    public String getName() {
+        return "discovery";
     }
 
     @Override

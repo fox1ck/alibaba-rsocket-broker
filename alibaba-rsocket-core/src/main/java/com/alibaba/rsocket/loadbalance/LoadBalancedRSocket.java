@@ -50,6 +50,7 @@ public class LoadBalancedRSocket extends AbstractRSocket implements CloudEventRS
     private final String serviceId;
     private final Flux<Collection<String>> urisFactory;
     private Collection<String> lastRSocketUris = new ArrayList<>();
+    private Collection<String> firstBatchUris;
     private Map<String, RSocket> activeSockets;
     /**
      * unhealthy uris
@@ -119,6 +120,11 @@ public class LoadBalancedRSocket extends AbstractRSocket implements CloudEventRS
         if (isSameWithLastUris(rsocketUris)) {
             return;
         }
+        //save first batch uris
+        if (this.firstBatchUris == null) {
+            firstBatchUris = rsocketUris;
+        }
+        log.info(RsocketErrorCode.message("RST-300207", serviceId, String.join(",", rsocketUris)));
         this.lastRefreshTimeStamp = System.currentTimeMillis();
         this.lastRSocketUris = rsocketUris;
         this.unHealthyUriSet.clear();
@@ -335,6 +341,10 @@ public class LoadBalancedRSocket extends AbstractRSocket implements CloudEventRS
                 }
             }
         }
+        // use first batch uris to refresh connections
+        if (activeSockets.isEmpty() && !lastRSocketUris.containsAll(firstBatchUris)) {
+            refreshRsockets(firstBatchUris);
+        }
     }
 
     public void onRSocketReconnected(String rsocketUri, RSocket rsocket) {
@@ -393,8 +403,7 @@ public class LoadBalancedRSocket extends AbstractRSocket implements CloudEventRS
                     .metadataMimeType(RSocketMimeType.CompositeMetadata.getType())
                     .dataMimeType(RSocketMimeType.Hessian.getType())
                     .acceptor(requesterSupport.socketAcceptor())
-                    .connect(UriTransportRegistry.clientForUri(uri))
-                    .doOnError(error -> ReferenceCountUtil.safeRelease(payload));
+                    .connect(UriTransportRegistry.clientForUri(uri));
         } catch (Exception e) {
             log.error(RsocketErrorCode.message("RST-400500", uri), e);
             return Mono.error(new ConnectionErrorException(uri));
